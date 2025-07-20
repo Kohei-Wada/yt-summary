@@ -5,7 +5,7 @@ set -euo pipefail
 SCRIPT_NAME="$(basename "$0")"
 DEFAULT_LANG="${YT_SUMMARY_LANG:-en-orig}"
 DEFAULT_FORMAT="${YT_SUMMARY_FORMAT:-ttml}"
-DEFAULT_PROMPT="${YT_SUMMARY_PROMPT:-Summarize the subtitles in Japanese.}"
+DEFAULT_PROMPT="${YT_SUMMARY_PROMPT:-以下の字幕を日本語で要約してください。見出しと段落を使って読みやすく整形してください。}"
 MAX_CHUNK_SIZE="${YT_SUMMARY_MAX_CHUNK_SIZE:-15000}"
 CHUNK_SIZE="${YT_SUMMARY_CHUNK_SIZE:-10000}"
 LOG_LEVEL="${YT_SUMMARY_LOG_LEVEL:-info}"
@@ -179,7 +179,7 @@ summarize_chunked_text() {
     log_info "Text too long, creating staged summary with $total_chunks chunks"
     
     local summaries=""
-    local chunk_prompt="この部分の内容を簡潔に要約して"
+    local chunk_prompt="この部分の内容を簡潔に要約してください。箇条書きや短い段落を使ってください。"
     
     for i in $(seq 0 $((total_chunks - 1))); do
         local start=$((i * CHUNK_SIZE))
@@ -197,7 +197,7 @@ summarize_chunked_text() {
     done
     
     log_info "Creating final summary from chunks"
-    echo -e "$summaries" | aichat "$prompt これらの部分要約を統合して全体の要約を作成して"
+    echo -e "$summaries" | aichat "$prompt これらの部分要約を統合して、見出しと段落を使った読みやすい全体要約を作成してください。重要なポイントは箇条書きにしてください。"
 }
 
 # Main function
