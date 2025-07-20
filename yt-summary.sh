@@ -18,11 +18,13 @@ NC='\033[0m' # No Color
 
 # Logging functions
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $*" >&2
+    if [[ "$LOG_LEVEL" != "quiet" ]]; then
+        echo -e "${RED}[ERROR]${NC} $*" >&2
+    fi
 }
 
 log_info() {
-    if [[ "$LOG_LEVEL" != "error" ]]; then
+    if [[ "$LOG_LEVEL" != "error" ]] && [[ "$LOG_LEVEL" != "quiet" ]]; then
         echo -e "${GREEN}[INFO]${NC} $*"
     fi
 }
@@ -52,12 +54,13 @@ Environment Variables:
   YT_SUMMARY_PROMPT        Default summarization prompt
   YT_SUMMARY_MAX_CHUNK_SIZE Maximum text size before chunking (default: 15000)
   YT_SUMMARY_CHUNK_SIZE    Size of each chunk when splitting (default: 10000)
-  YT_SUMMARY_LOG_LEVEL     Log level: error, info, debug (default: info)
+  YT_SUMMARY_LOG_LEVEL     Log level: quiet, error, info, debug (default: info)
 
 Examples:
   $SCRIPT_NAME "https://youtube.com/watch?v=VIDEO_ID"
   $SCRIPT_NAME "https://youtube.com/watch?v=VIDEO_ID" "ja"
   YT_SUMMARY_LOG_LEVEL=debug $SCRIPT_NAME "https://youtube.com/watch?v=VIDEO_ID"
+  YT_SUMMARY_LOG_LEVEL=quiet $SCRIPT_NAME "https://youtube.com/watch?v=VIDEO_ID"
 EOF
 }
 
@@ -77,6 +80,21 @@ check_dependencies() {
         log_error "Please install them before running this script."
         exit 1
     fi
+}
+
+# Get video title
+get_video_title() {
+    local url="$1"
+    
+    log_debug "Fetching video title"
+    
+    local title
+    if ! title=$(yt-dlp -q --get-title "$url" 2>&1); then
+        log_error "Failed to get video title: $title"
+        return 1
+    fi
+    
+    echo "$title"
 }
 
 # Check if subtitles are available
@@ -228,6 +246,12 @@ main() {
     
     log_debug "Working directory: $tmpdir"
     cd "$tmpdir"
+    
+    # Get and display video title
+    local video_title
+    if video_title=$(get_video_title "$url"); then
+        echo -e "\n${GREEN}Video Title:${NC} $video_title\n"
+    fi
     
     # Check if subtitles are available
     if ! check_subtitles "$url" "$lang"; then
